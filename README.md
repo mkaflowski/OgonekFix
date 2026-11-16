@@ -114,4 +114,7 @@ config.json            ścieżki do narzędzi i katalogów wyjściowych
 
 ## Licencja
 
-Do uzupełnienia.
+Kod narzędzia: [MIT](LICENSE).
+
+Licencja obejmuje tylko to narzędzie. Poprawione fonty są pochodną fontów z gry i dalej
+podlegają ich licencji - nie rozpowszechniaj ich bez zgody właściciela fontu.
