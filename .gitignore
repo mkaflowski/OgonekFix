@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+loose_fonts_out/
+unreal_fonts_out/
+fixed_fonts/
+fixed_preview/
+font_preview/
+*.bak_plfont
+.claude/

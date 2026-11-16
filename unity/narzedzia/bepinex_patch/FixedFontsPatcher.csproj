@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Szkielet - nieprzetestowany, patrz README.md. Trzeba dostosowac per-gra:
+    - GameInteropDir: folder z DLL-kami wygenerowanymi przez BepInEx przy
+      pierwszym starcie gry (zwykle "<gra>/BepInEx/interop/").
+    - Nazwy referencji nizej (Il2CppTextMeshPro / Il2CppUnityEngine.*) zgadnij
+      po plikach w GameInteropDir - roznia sie miedzy grami/wersjami Unity.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>FixedFontsPatcher</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- USTAW NA FOLDER Z INTEROP DLL-KAMI KONKRETNEJ GRY -->
+    <GameInteropDir>C:\SCIEZKA\DO\GRY\BepInEx\interop</GameInteropDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="BepInEx.IL2CPP" Version="6.0.0-*" IncludeAssets="compile" />
+  </ItemGroup>
+
+  <!-- Referencje do gry - DLL-ki generowane przez BepInEx, nie NuGet.
+       Nazwy ponizej sa TYPOWE, ale sprawdz faktyczna zawartosc
+       GameInteropDir i podmien sciezki. -->
+  <ItemGroup>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(GameInteropDir)\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppUnityEngine.CoreModule">
+      <HintPath>$(GameInteropDir)\Il2CppUnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppUnityEngine.ImageConversionModule">
+      <HintPath>$(GameInteropDir)\Il2CppUnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Nazwa TMPro-interop bywa rozna: Il2CppTextMeshPro.dll,
+         Il2CppUnity.TextMeshPro.dll, Il2CppTMPro.dll... sprawdz w
+         GameInteropDir i popraw ponizej. -->
+    <Reference Include="Il2CppTextMeshPro">
+      <HintPath>$(GameInteropDir)\Il2CppTextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.*" />
+  </ItemGroup>
+
+</Project>

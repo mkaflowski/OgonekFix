@@ -1,0 +1,13 @@
+# python -m pip install -r requirements.txt   (Python 3.10+)
+
+# oba silniki
+fonttools
+skia-pathops
+pillow
+numpy
+scipy          # Unreal: fonty offline (pole odleglosci)
+
+# tylko Unity (tools/font_fixer/unity/fix_tmp_polish_fonts.py)
+UnityPy
+TypeTreeGeneratorAPI
+freetype-py

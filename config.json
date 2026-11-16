@@ -1,0 +1,13 @@
+{
+  "_opis": "Sciezki uzywane przez OgonekFix. Wzgledne licza sie od folderu z tym plikiem, bezwzgledne zostaja jak sa. Pusty napis = szukaj w PATH / wartosc domyslna. Zmiennej srodowiskowej FONT_FIXER_CONFIG mozna uzyc, zeby wskazac inny plik.",
+
+  "unity_tool": "unity/fix_tmp_polish_fonts.py",
+  "unreal_tool": "unreal/fix_unreal_polish_fonts.py",
+
+  "repak": "",
+  "retoc": "",
+
+  "unreal_output_dir": "",
+  "unity_export_dir": "",
+  "loose_fonts_out": ""
+}
