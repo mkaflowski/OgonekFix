@@ -48,14 +48,17 @@ literę ASCII - takie „mają” znak tylko na papierze.
 
 ### 1. Pobierz program
 
-Masz do wyboru trzy sposoby (wszystkie dają ten sam kod):
+Pobierz **cały projekt** (wszystkie pliki naraz - program nie działa z pojedynczych skryptów):
 
-- **Gotowy plik ZIP (najprościej):** wejdź w [Releases](https://github.com/mkaflowski/OgonekFix/releases),
-  pobierz najnowszy „Source code (zip)” i rozpakuj w dowolnym miejscu (np. `C:\OgonekFix`).
-- **Przycisk Code → Download ZIP** na stronie repozytorium - to aktualny stan gałęzi `main`.
-- **Git:** `git clone https://github.com/mkaflowski/OgonekFix.git`
+- **Bez gita (najprościej):** na stronie [github.com/mkaflowski/OgonekFix](https://github.com/mkaflowski/OgonekFix)
+  kliknij zielony przycisk **Code**, potem **Download ZIP**. Rozpakuj archiwum w dowolnym miejscu
+  (np. `C:\OgonekFix`) tak, żeby obok siebie zostały `fix_game_fonts.py`, `unity/`, `unreal/`
+  i reszta plików.
+- **Z gitem:** `git clone https://github.com/mkaflowski/OgonekFix.git`
 
 Program nie ma instalatora - to zwykły folder ze skryptami, który możesz trzymać gdziekolwiek.
+Aktualizacja: pobierz ZIP jeszcze raz (albo `git pull`) i podmień pliki, zachowując własny
+`config.json` i zawartość `moje_fonty/`.
 
 ### 2. Zainstaluj Pythona
 
