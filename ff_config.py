@@ -29,10 +29,11 @@ DEFAULTS = {
     "unreal_output_dir": "",
     "unity_export_dir": "",
     "loose_fonts_out": "",
+    "my_fonts_dir": "moje_fonty",
 }
 KINDS = {"unity_tool": "plik", "unreal_tool": "plik", "repak": "program", "retoc": "program",
          "unreal_output_dir": "katalog wyjsciowy", "unity_export_dir": "katalog wyjsciowy",
-         "loose_fonts_out": "katalog wyjsciowy"}
+         "loose_fonts_out": "katalog wyjsciowy", "my_fonts_dir": "katalog wlasnych fontow"}
 
 _cache: dict | None = None
 load_error = ""

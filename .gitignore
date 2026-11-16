@@ -7,3 +7,6 @@ fixed_preview/
 font_preview/
 *.bak_plfont
 .claude/
+# wlasne fonty uzytkownika - nie commitujemy (licencje), zostaje tylko opis
+moje_fonty/*
+!moje_fonty/WRZUC-TUTAJ-FONTY.txt

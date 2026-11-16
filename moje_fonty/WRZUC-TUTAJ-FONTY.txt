@@ -1,0 +1,13 @@
+Wlasne fonty (.ttf .otf .ttc .otc) - wrzuc je tutaj.
+
+Przy naprawie statycznych atlasow SDF (Unity) OgonekFix sprawdza ten folder PRZED
+fontami zainstalowanymi w systemie:
+
+  1. Font o tej samej nazwie co font gry (np. Inter.ttf dla assetu "Inter SDF",
+     albo font o takiej samej nazwie wewnetrznej) - jesli ma polskie znaki, bierze z niego
+     prawdziwe glify zamiast skladac litery z elementow atlasu.
+  2. Pozostale fonty z tego folderu pojawiaja sie w menu wyboru fontu
+     (przy "font fallback") z adnotacja, czy maja wszystkie polskie znaki.
+
+Pliki z tego folderu nie sa dodawane do repozytorium (licencje fontow).
+Inny folder mozna wskazac kluczem "my_fonts_dir" w config.json.

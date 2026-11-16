@@ -133,6 +133,7 @@ import generate_tmp_sdf as gen  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import unitypy_format23  # noqa: E402
 unitypy_format23.enable()
+import system_fonts  # noqa: E402  (ten sam font zainstalowany w systemie)
 
 # font_fixer/fix_polish_fonts.py umie DOROBIC polska litere w samym foncie
 # (litera bazowa + akcent wyciety z innego glifu tego samego kroju, a ogonek
@@ -175,6 +176,10 @@ AUTO_SYNTH = False
 # Font fallback wybrany kiedykolwiek przez uzytkownika - w trybie AUTO_SYNTH
 # uzywamy go ponownie zamiast pytac; None = zostaje transliteracja.
 AUTO_FALLBACK = None
+# Szukanie w systemie (C:\Windows\Fonts, ~/.fonts...) tego samego fontu co w grze,
+# zeby polskie litery statycznego atlasu SDF wziac z prawdziwego TTF. --no-system-fonts
+# wylacza.
+USE_SYSTEM_FONTS = True
 
 # Tryb --auto: skrypt NIE zadaje ani jednego pytania. Kazde `ask()` zwraca
 # wartosc domyslna (ta sama, ktora daje Enter w trybie interaktywnym), wiec
@@ -1643,6 +1648,8 @@ _font_data_cache = {}
 
 
 def get_font_data(gf, font_ref):
+    if font_ref.get("local_sf") is not None:       # font z folderu moje_fonty
+        return font_ref["local_sf"].read_bytes()
     key = (os.path.abspath(font_ref["path"]), font_ref["path_id"],
            font_ref.get("serialized_name"))
     if key in _font_data_cache:
@@ -1776,6 +1783,34 @@ def scaled_fallback_glyphs(fb_face, missing, chars, glyphs, point_size, padding,
         out_glyphs.update({gi + sub: g for gi, g in g_glyphs.items()})
         still += g_missing
     return out_chars, out_glyphs, sorted(still)
+
+
+# inny przedzial indeksow niz FALLBACK_GLYPH_OFFSET - font z systemu i ewentualny
+# fallback moga byc roznymi plikami, a ten sam indeks to dwa rozne glify
+SYSTEM_GLYPH_OFFSET = 3_000_000
+
+
+def add_real_glyphs_from_ttf(ttf_bytes, missing, chars, glyphs, point_size, padding,
+                             render_mode=None):
+    """Brakujace litery z PRAWDZIWEGO fontu tego samego kroju (np. z systemu).
+
+    Bierze tylko znaki, ktore font naprawde ma (bez kopii .notdef i ASCII), nic nie
+    dorabia i nie sklada - to ma byc oryginalny glif. Wielkosc dopasowuje do glifow
+    atlasu (scaled_fallback_glyphs). Modyfikuje `chars` i `glyphs` w miejscu.
+
+    Zwraca (lista pobranych codepointow, nadal brakujace codepointy).
+    """
+    have, _ = ttf_polish_coverage(ttf_bytes, quiet=True)
+    real = [cp for cp in missing if chr(cp) in have]
+    if not real:
+        return [], list(missing)
+    fb_face = freetype.Face(io.BytesIO(ttf_bytes))
+    got_chars, got_glyphs, still = scaled_fallback_glyphs(
+        fb_face, real, chars, glyphs, point_size, padding, render_mode=render_mode)
+    chars += [(cp, gi + SYSTEM_GLYPH_OFFSET) for cp, gi in got_chars]
+    glyphs.update({gi + SYSTEM_GLYPH_OFFSET: g for gi, g in got_glyphs.items()})
+    taken = [cp for cp, _ in got_chars]
+    return taken, sorted((set(missing) - set(real)) | set(still))
 
 
 def compose_missing_accents(fallback_ttf):
@@ -2543,6 +2578,12 @@ def ask_font_source(gf, ttf_fonts, prompt, need=None, partial_ok=False):
     transliteracja. Bez tej podpowiedzi wyglada to na slepa uliczke.
     Zwraca (bytes, opis) lub (None, None)."""
     need = PL_CHARS if need is None else need
+    # wlasne fonty z folderu moje_fonty sa na liscie obok fontow z gry
+    try:
+        ttf_fonts = list(ttf_fonts or []) + (system_fonts.user_font_refs()
+                                             if USE_SYSTEM_FONTS else [])
+    except Exception as e:
+        print(f"  ! nie udalo sie wczytac folderu moje_fonty ({e})")
     print(f"  {prompt}")
     if partial_ok:
         print("  (font z '[brak: ...]' tez mozna wybrac - brakujace litery"
@@ -2575,7 +2616,53 @@ def ask_font_source(gf, ttf_fonts, prompt, need=None, partial_ok=False):
         print("  ! nie ma takiego pliku ani numeru")
 
 
-def choose_ttf(tmp_name, family, ttf_fonts, gf):
+class SystemTTF(bytes):
+    """Bajty TTF/OTF znalezionego w systemie fontu TEGO SAMEGO kroju co font gry.
+    Znacznik dla rebuild_font_asset_from_atlas: jego glify bierzemy PRZED skladaniem."""
+    desc = ""
+
+
+def pick_system_font(tmp_name, family, style=""):
+    """Szuka fontu o nazwie fontu gry w folderze moje_fonty, a potem w systemie;
+    zwraca SystemTTF albo None.
+
+    Bierze tylko font, ktory ma jakiekolwiek polskie znaki - bez nich nic by nie dal.
+    W trybie automatycznym uzywa go bez pytania, interaktywnie pyta (Enter = tak).
+    """
+    if not USE_SYSTEM_FONTS:
+        return None
+    try:
+        cands = system_fonts.find(tmp_name, family, style)
+    except Exception as e:
+        print(f"  ! szukanie fontow systemowych nie powiodlo sie ({e})")
+        return None
+    for sf in cands:
+        try:
+            data = sf.read_bytes()
+        except Exception as e:
+            print(f"  ! nie mozna odczytac {sf.label}: {e}")
+            continue
+        have, missing = ttf_polish_coverage(data, quiet=True)
+        if not have:
+            print(f"  W systemie jest {sf.label}, ale bez polskich znakow - pomijam")
+            continue
+        print(f"  Znaleziono {'we WLASNYCH fontach' if sf.user else 'w SYSTEMIE'}"
+              f" ten sam font: {sf.label}")
+        print(f"    polskie znaki: {have}" +
+              (f"  (brak: {missing})" if missing else "  (komplet)"))
+        if not AUTO_SYNTH:
+            ans = ask("  Uzyc jego prawdziwych polskich znakow? [T/n]: ", "t").strip().lower()
+            if ans in ("n", "nie"):
+                continue
+        else:
+            print("  (automat) biore z niego prawdziwe polskie znaki")
+        out = SystemTTF(data)
+        out.desc = sf.label
+        return out
+    return None
+
+
+def choose_ttf(tmp_name, family, ttf_fonts, gf, style=""):
     """Wybiera TTF glowny + opcjonalny fallback dla brakujacych znakow.
 
     Zwraca (mode, base_ttf, fallback_ttf, translit):
@@ -2606,6 +2693,10 @@ def choose_ttf(tmp_name, family, ttf_fonts, gf):
 
     if base is None:
         print(f"  ! Nie znaleziono w grze fontu TTF pasujacego do {tmp_name!r}.")
+        # ten sam font zainstalowany w systemie: prawdziwe polskie glify w kroju oryginalu
+        sys_ttf = pick_system_font(tmp_name, family, style)
+        if sys_ttf is not None:
+            return "atlas", None, sys_ttf, True
         if AUTO_SYNTH:
             # font fallback (jesli w ogole potrzebny) dobierzemy PO sprawdzeniu,
             # czego naprawde nie da sie zlozyc z wlasnych glifow atlasu - patrz
@@ -3076,7 +3167,7 @@ def extract_existing_glyphs(atlas_img, tree, padding):
 
 def rebuild_font_asset_from_atlas(gf, font_info, tree, tmp_obj, mat_index,
                                   fallback_ttf=None, export_dir=None,
-                                  ttf_fonts=None, replace_chars=""):
+                                  ttf_fonts=None, replace_chars="", prefer_real=False):
     """Zamiast renderowac caly font od zera, wycina ISTNIEJACE glify wprost
     z biezacego atlasu
     i tylko dopelnia to, czego naprawde brakuje:
@@ -3128,6 +3219,21 @@ def rebuild_font_asset_from_atlas(gf, font_info, tree, tmp_obj, mat_index,
     missing = sorted({ord(ch) for ch in PL_CHARS} - have_cp)
     print(f"  Z biezacego atlasu: {len(glyphs)} glifow, {len(chars)} znakow; "
           f"brakuje {''.join(chr(c) for c in missing) or '-'}")
+
+    # prefer_real: TTF to ten sam font zainstalowany w systemie - jego prawdziwe
+    # glify sa lepsze niz skladane z liter atlasu, wiec bierzemy je jako pierwsze
+    # (tylko te znaki, ktore font naprawde ma); reszte dopelni skladanie nizej
+    if prefer_real and fallback_ttf and missing:
+        if sdf_mode and padding > MAX_SPREAD:
+            print(f"  ! padding {padding} > {MAX_SPREAD} (limit spreadu FreeType) -"
+                  f" nie da sie dorenderowac SDF z fontu systemowego")
+        else:
+            taken, missing = add_real_glyphs_from_ttf(
+                fallback_ttf, missing, chars, glyphs, point_size, padding,
+                render_mode=render_mode)
+            if taken:
+                print(f"  Z prawdziwego fontu: {''.join(chr(c) for c in sorted(taken))}"
+                      f"{'; skladane z atlasu: ' + ''.join(chr(c) for c in missing) if missing else ''}")
 
     # najpierw to, co da sie zrobic z WLASNYCH glifow fontu: kreska i kropka
     # wyciete z jego liter, a w trybie SYNTH_FULL takze dorysowany ogonek
@@ -4411,6 +4517,9 @@ Opcje:
   --fallback PLIK    TTF/OTF na litery, ktorych nie da sie zlozyc z wlasnych
                      glifow fontu (bez tego zostaje transliteracja)
   --marks-only       dorabiaj tylko kreske i kropke (ą ę ł z fallbacku)
+  --no-system-fonts  nie szukaj w systemie (C:\\Windows\\Fonts, ~/.fonts...) tego samego
+                     fontu co w grze; domyslnie statyczny atlas SDF bierze z niego
+                     PRAWDZIWE polskie znaki, gdy font jest zainstalowany i je ma
   --replace-chars TEKST  zloz od nowa wskazane polskie glify statycznego TMP,
                         nawet gdy sa obecne (np. --replace-chars ąę)
   --jobs N, -j N     liczba procesow skanu (1 = bez rownoleglosci)
@@ -4433,6 +4542,7 @@ class Options:
         self.export_dir = None
         self.fallback = None
         self.synth_full = True
+        self.system_fonts = True
         self.replace_chars = ""
 
 
@@ -4482,6 +4592,10 @@ def parse_args(argv):
             continue
         if a == "--marks-only":
             opts.synth_full = False
+            i += 1
+            continue
+        if a == "--no-system-fonts":
+            opts.system_fonts = False
             i += 1
             continue
         if a == "--replace-chars" and nxt is not None:
@@ -4538,7 +4652,8 @@ def apply_options(opts):
 
     Bez --auto nic sie nie zmienia: skrypt dalej pyta o wszystko tak jak dotad
     (tryb z wyborami jest domyslny, --auto to tylko skrot dla skryptow)."""
-    global AUTO, AUTO_SYNTH, SYNTH_FULL
+    global AUTO, AUTO_SYNTH, SYNTH_FULL, USE_SYSTEM_FONTS
+    USE_SYSTEM_FONTS = opts.system_fonts
     SYNTH_FULL = opts.synth_full
     if opts.fallback:
         if not os.path.isfile(opts.fallback):
@@ -4709,6 +4824,7 @@ def main():
                         "source_error": source_error,
                         "skip_reason": unsupported_reason(cps),
                          "family": tree.get("m_FaceInfo", {}).get("m_FamilyName", ""),
+                         "style": tree.get("m_FaceInfo", {}).get("m_StyleName", ""),
                          "chars": len(unicodes)})
 
     if detail_errors:
@@ -4789,14 +4905,16 @@ def main():
             if opts.replace_chars:
                 mode, ttf, fallback, translit = "atlas", None, None, False
             else:
-                mode, ttf, fallback, translit = choose_ttf(d["name"], d["family"], ttf_fonts, gf)
+                mode, ttf, fallback, translit = choose_ttf(d["name"], d["family"], ttf_fonts, gf,
+                                                           d.get("style", ""))
             if mode == "skip":
                 print("  pominieto")
                 continue
             if mode == "atlas":
                 ok = rebuild_font_asset_from_atlas(gf, d, d["tree"], d["obj"], mat_index,
                                                    fallback, export_dir, ttf_fonts=ttf_fonts,
-                                                   replace_chars=opts.replace_chars)
+                                                   replace_chars=opts.replace_chars,
+                                                   prefer_real=isinstance(fallback, SystemTTF))
             else:
                 ok = rebuild_font_asset(gf, d, d["tree"], d["obj"], ttf, mat_index,
                                         fallback, export_dir, translit)

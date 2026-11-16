@@ -15,6 +15,21 @@ którą da się wgrać do gry.
 | **Unreal Engine 4/5** | `.ufont` / `.ttf` / `.otf` w pakach (`.pak`, IoStore) oraz fonty offline (atlas zaszyty w `.uasset`) |
 | **Luźne pliki** | `.ttf` `.otf` `.ttc` `.otc` w dowolnych folderach - niezależnie od silnika |
 
+### Unity: prawdziwe glify z fontu zainstalowanego w systemie
+
+Statyczny atlas SDF nie ma pliku TTF. Gdy w grze nie ma pasującego fontu, OgonekFix szuka w systemie
+(`C:\Windows\Fonts`, `~/.fonts`, `/usr/share/fonts`, `~/Library/Fonts`…) fontu o tej samej nazwie
+i stylu. Jeśli go znajdzie i ma on polskie znaki, bierze z niego oryginalne glify (dopasowane
+rozmiarem do atlasu) zamiast składać litery z elementów atlasu; czego font nie ma, jest dalej
+składane. Dopasowanie jest ścisłe - `Arial` nie pasuje do `Arial Black`. `--no-system-fonts` wyłącza
+to szukanie.
+
+**Własne fonty (`moje_fonty/`).** Wrzuć do folderu `moje_fonty/` własne pliki `.ttf` / `.otf` / `.ttc`.
+Są sprawdzane przed fontami systemowymi i tak samo - czy mają polskie znaki, którymi można uzupełnić
+atlas SDF. Font pasuje, gdy jego nazwa albo nazwa pliku jest taka jak nazwa fontu w grze
+(np. `Inter.ttf` do `Inter SDF`); pozostałe pojawiają się w menu wyboru fontu zapasowego z adnotacją
+o pokryciu polskich znaków.
+
 ## Jak to działa
 
 Brakujące litery powstają w trzech krokach, od najlepszego:
@@ -31,7 +46,26 @@ literę ASCII - takie „mają” znak tylko na papierze.
 
 ## Instalacja
 
-Wymaga Pythona 3.10+.
+### 1. Pobierz program
+
+Masz do wyboru trzy sposoby (wszystkie dają ten sam kod):
+
+- **Gotowy plik ZIP (najprościej):** wejdź w [Releases](https://github.com/mkaflowski/OgonekFix/releases),
+  pobierz najnowszy „Source code (zip)” i rozpakuj w dowolnym miejscu (np. `C:\OgonekFix`).
+- **Przycisk Code → Download ZIP** na stronie repozytorium - to aktualny stan gałęzi `main`.
+- **Git:** `git clone https://github.com/mkaflowski/OgonekFix.git`
+
+Program nie ma instalatora - to zwykły folder ze skryptami, który możesz trzymać gdziekolwiek.
+
+### 2. Zainstaluj Pythona
+
+Potrzebny jest Python 3.10 lub nowszy. Na Windowsie pobierz go z
+[python.org/downloads](https://www.python.org/downloads/) i **zaznacz „Add python.exe to PATH”**
+w instalatorze. Na Linuksie zwykle wystarczy pakiet systemowy (`python3`, `python3-pip`).
+
+### 3. Zainstaluj biblioteki
+
+W folderze z programem otwórz terminal i wpisz:
 
 ```bash
 python -m pip install -r requirements.txt
@@ -39,9 +73,13 @@ python fix_game_fonts.py --check
 ```
 
 `--check` sprawdza `config.json` i biblioteki - zacznij od niego na nowej maszynie.
-Dla Unreala potrzebne są jeszcze [repak](https://github.com/trumank/repak/releases)
-i (dla gier z IoStore) [retoc](https://github.com/trumank/retoc/releases); ścieżki wpisujesz
-w `config.json`.
+
+### 4. Tylko dla gier Unreal Engine: repak i retoc
+
+Pobierz [repak](https://github.com/trumank/repak/releases) (potrzebny zawsze przy Unrealu)
+i [retoc](https://github.com/trumank/retoc/releases) (dla gier z IoStore, czyli z plikami
+`.utoc`/`.ucas`). Rozpakuj gdziekolwiek i wpisz ścieżki do `.exe` w `config.json`
+(klucze `repak` i `retoc`) albo dodaj je do `PATH`. Dla gier Unity ten krok jest zbędny.
 
 ## Użycie
 
@@ -106,6 +144,7 @@ w `PATH` albo użyj domyślnej wartości). Inny plik wskażesz zmienną `FONT_FI
 ```
 fix_game_fonts.py      wejście: wykrywa silnik i uruchamia właściwe narzędzie
 loose_fonts.py         luźne pliki .ttf/.otf/.ttc w folderach
+moje_fonty/            twoje fonty do uzupełniania statycznych atlasów SDF
 fix_polish_fonts.py    silnik kroju: dorabianie liter w TTF/OTF/TTC (wspólny)
 unity/                 Unity: TMP, Font, bitmapowe, instalacja w grze
 unreal/                Unreal: .ufont w pakach, fonty offline

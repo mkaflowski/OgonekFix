@@ -36,9 +36,39 @@ wystarczy ścieżka do katalogu gry.
 | `--export-dir DIR` | katalog eksportu (domyślnie `fixed_fonts/` obok skryptu) |
 | `--fallback PLIK` | TTF/OTF na litery, których nie da się złożyć z własnych glifów |
 | `--marks-only` | dorabiaj tylko kreskę i kropkę (`ą ę ł` z fallbacku) |
+| `--no-system-fonts` | nie szukaj fontu w folderze `moje_fonty/` ani w systemie (patrz niżej) |
 | `--replace-chars ąę` | odtwórz wskazane polskie glify statycznego TMP, nawet jeśli są w atlasie, lecz mają błędny rysunek; resztę glifów zachowaj |
 | `--jobs N`, `-j N` | liczba procesów skanu (1 = bez równoległości) |
 | `--help`, `-h` | pełna pomoc |
+
+---
+
+## Własne fonty (`moje_fonty/`) i fonty z systemu - uzupełnianie statycznych SDF
+
+Statyczny atlas SDF nie ma pliku TTF, więc brakujące polskie litery normalnie są składane
+z elementów samego atlasu. Jeśli jednak **ten sam font** jest pod ręką jako zwykły plik i ma
+polskie znaki, narzędzie bierze z niego **prawdziwe glify** (dopasowane rozmiarem do atlasu).
+
+Kolejność szukania, gdy w grze nie ma pasującego TTF:
+
+1. **`moje_fonty/`** - folder obok `fix_game_fonts.py` (`tools/font_fixer/moje_fonty/`; inny wskażesz
+   kluczem `my_fonts_dir` w `config.json`). Wrzuć tu własne pliki `.ttf` `.otf` `.ttc` `.otc`.
+   Font pasuje, gdy jego nazwa (pełna, PostScript, rodzina + styl) **albo nazwa pliku** równa się
+   nazwie fontu gry bez dopisków SDF/Atlas/Fallback - np. `Inter.ttf` pasuje do assetu `Inter SDF`.
+2. **Fonty systemowe** - `C:\Windows\Fonts`, `%LOCALAPPDATA%\Microsoft\Windows\Fonts`,
+   `/usr/share/fonts`, `~/.fonts`, `~/Library/Fonts`. Tu liczy się tylko nazwa fontu, nie nazwa pliku.
+
+Dopasowanie jest ścisłe: `Arial` nie pasuje do `Arial Black`, `Arial Bold` bierze tylko pogrubiony
+krój. Znaleziony font jest sprawdzany pod kątem polskich znaków (tak samo jak każdy inny); bez
+żadnego polskiego znaku jest pomijany. Interaktywnie narzędzie pyta o zgodę (Enter = tak),
+w `--auto` używa fontu bez pytania. To, czego font nie ma, jest dalej składane z atlasu.
+
+Pozostałe fonty z `moje_fonty/` (te, których nazwa nie pasuje do żadnego fontu gry) pojawiają się
+w menu „wybierz font fallback” obok fontów z gry, z adnotacją `[OK - ma wszystkie]` albo
+`[brak: ...]`. Pliki z `moje_fonty/` nie są dodawane do repozytorium (licencje fontów).
+
+`--no-system-fonts` wyłącza całe to szukanie. Dotyczy tylko statycznych atlasów;
+fonty dynamiczne naprawiane są w swoim TTF.
 
 ---
 

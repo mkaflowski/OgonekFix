@@ -62,6 +62,7 @@ Zmienna `FONT_FIXER_CONFIG` wskazuje inny plik konfiguracji.
 | `retoc` | `retoc.exe` — IoStore `.utoc/.ucas` (Unreal: wykrywanie i naprawa fontów offline) | `retoc` z `PATH`; bez niego ten krok jest pomijany |
 | `unreal_output_dir` | gdzie lądują paki, podglądy i oryginały (podfolder na grę) | `unreal_fonts_out/` w bieżącym katalogu |
 | `unity_export_dir` | katalog `fixed_fonts` dla Unity (przekazywany jako `--export-dir`) | `fixed_fonts/` obok skryptu Unity |
+| `my_fonts_dir` | folder z własnymi fontami (patrz niżej, „moje_fonty”) | `moje_fonty/` obok `config.json` |
 | `loose_fonts_out` | gdzie lądują poprawione luźne pliki fontów (podfolder na grę) | `loose_fonts_out/` w bieżącym katalogu |
 
 Skąd wziąć programy: [repak](https://github.com/trumank/repak/releases),
@@ -111,6 +112,21 @@ bitmapowe, dorabia litery na atlasie albo w konturach TTF. Domyślnie EKSPORT do
 `fixed_fonts/` (gra nietknięta), `--patch` zapisuje w grze z kopią `.bak_plfont`.
 Uwaga: przy starcie pyta, czy skasować podglądy z poprzedniej gry (`font_preview/`);
 w `--auto` kasuje je bez pytania.
+
+**Unity, statyczne atlasy SDF — font z systemu.** Statyczny atlas nie ma pliku TTF. Gdy w grze
+nie ma pasującego TTF, narzędzie szuka w systemie (`C:\Windows\Fonts`, `%LOCALAPPDATA%\Microsoft\Windows\Fonts`,
+`/usr/share/fonts`, `~/.fonts`, `~/Library/Fonts`) fontu o **tej samej nazwie** (nazwa assetu bez
+dopisków SDF/Atlas/Fallback, rodzina + styl z `m_FaceInfo`; dopasowanie ścisłe, `Arial` nie łapie
+`Arial Black`). Jeśli taki font ma polskie znaki, bierze z niego **prawdziwe glify** (dopasowane
+rozmiarem do atlasu) zamiast składać litery z elementów atlasu; to, czego font nie ma, nadal
+jest składane. Interaktywnie pyta o zgodę (Enter = tak), w `--auto` używa bez pytania.
+`--no-system-fonts` wyłącza to szukanie. Dotyczy tylko statycznych atlasów; fonty dynamiczne
+naprawiane są w swoim TTF jak dotąd.
+
+**`moje_fonty/`** (klucz `my_fonts_dir` w `config.json`) - własne pliki `.ttf/.otf/.ttc` użytkownika; są
+szukane PRZED fontami systemowymi (pasuje też nazwa pliku, np. `Inter.ttf` do `Inter SDF`), a pozostałe
+trafiają do menu wyboru fontu zapasowego z adnotacją o pokryciu polskich znaków. Zawartość folderu nie
+jest commitowana (`.gitignore`), zostaje tylko `WRZUC-TUTAJ-FONTY.txt`.
 
 **Unreal** — czyta paki przez `repak`, wyciąga `*.ufont` / `*.ttf` / `*.otf` (bez
 `Engine/`), obsługuje obie formy `.ufont` (surowy font oraz z 4-bajtowym nagłówkiem),
