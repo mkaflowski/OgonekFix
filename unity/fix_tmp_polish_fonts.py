@@ -4483,10 +4483,25 @@ def find_data_dir(game_path):
     game_path = os.path.abspath(game_path)
     if os.path.isdir(game_path) and (game_path.endswith("_Data") or looks_like_data_dir(game_path)):
         return game_path, os.path.dirname(game_path)
-    for entry in os.listdir(game_path):
-        full = os.path.join(game_path, entry)
-        if entry.endswith("_Data") and os.path.isdir(full):
-            return full, game_path
+    # Kilka katalogow *_Data (np. Empire of Sin: DLC_Data + EmpireOfSin_Data) -
+    # wybierz ten z plikami glownej gry, a przy remisie ten o nazwie exe.
+    data_dirs = [e for e in os.listdir(game_path)
+                 if e.endswith("_Data") and os.path.isdir(os.path.join(game_path, e))]
+    if data_dirs:
+        exe_stems = {os.path.splitext(e)[0].lower() for e in os.listdir(game_path)
+                     if e.lower().endswith(".exe")}
+
+        def _rank(name):
+            full = os.path.join(game_path, name)
+            main = os.path.exists(os.path.join(full, "globalgamemanagers")) or \
+                os.path.exists(os.path.join(full, "data.unity3d"))
+            return (not main, not looks_like_data_dir(full),
+                    name[:-5].lower() not in exe_stems, name.lower())
+
+        data_dirs.sort(key=_rank)
+        if len(data_dirs) > 1:
+            print(f"Wiele katalogow *_Data {data_dirs} - wybrano: {data_dirs[0]}")
+        return os.path.join(game_path, data_dirs[0]), game_path
     for entry in os.listdir(game_path):
         full = os.path.join(game_path, entry)
         if os.path.isdir(full) and looks_like_data_dir(full):
